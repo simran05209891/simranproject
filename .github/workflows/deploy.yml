@@ -1,5 +1,30 @@
-your-repo/
- └── .github/
-      └── workflows/
-           └── deploy.yml
+name: Full Auto Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Deploy to Server via SSH
+      uses: appleboy/ssh-action@v1.0.2
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd ~/simran.project 
+          git pull origin main
+          npm install --force
+          npm run build
+          pm2 restart all || pm2 start server.js --name backend
+          echo "✅ Deployment Done Successfully"
+
 
