@@ -1,4 +1,4 @@
-name: 🚀 MERN Auto Deploy
+name: 🚀 Auto Deploy MERN App
 
 on:
   push:
@@ -10,44 +10,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ---------------- CHECKOUT CODE ----------------
-      - name: 📥 Checkout Code
-        uses: actions/checkout@v3
+    # 1. Checkout Code
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v3
 
-      # ---------------- SSH SETUP ----------------
-      - name: 🔐 Setup SSH
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+    # 2. Setup SSH
+    - name: 🔑 Setup SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # ---------------- BACKEND DEPLOY ----------------
-      - name: 🚀 Deploy Backend
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            echo "Pulling backend..."
-            cd ~/mernapp/backend
+    # 3. Deploy Backend via SSH
+    - name: 🚀 Deploy Backend
+      run: |
+        ssh -o StrictHostKeyChecking=no simran@${{ secrets.SERVER_IP }} << 'EOF'
+          cd ~/simran.project/backend
+          git pull origin main
+          npm install --force
+          pm2 restart backend || pm2 start server.js --name backend
+          pm2 save
+        EOF
 
-            git pull
-            npm install
+    # 4. Build Frontend
+    - name: 🏗 Build Frontend
+      run: |
+        cd Client
+        npm install --force
+        npm run build
 
-            echo "Restarting backend with PM2..."
-            pm2 restart backend || pm2 start server.js --name backend
-            pm2 save
-          EOF
+    # 5. Upload frontend build
+    - name: 📤 Upload Frontend
+      run: |
+        scp -o StrictHostKeyChecking=no -r Client/build/* simran@${{ secrets.SERVER_IP }}:/var/www/frontend/
 
-      # ---------------- FRONTEND BUILD ----------------
-      - name: 🏗 Build Frontend
-        run: |
-          cd frontend
-          npm install
-          npm run build
-
-      # ---------------- FRONTEND DEPLOY ----------------
-      - name: 📤 Upload Frontend Build
-        run: |
-          scp -o StrictHostKeyChecking=no -r frontend/build/* ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/var/www/frontend/
-
-      # ---------------- NGINX RELOAD ----------------
-      - name: 🔄 Reload Nginx
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "sudo systemctl reload nginx"
+    # 6. Reload nginx
+    - name: 🔁 Reload Nginx
+      run: |
+        ssh -o StrictHostKeyChecking=no simran@${{ secrets.SERVER_IP }} "sudo systemctl reload nginx"
