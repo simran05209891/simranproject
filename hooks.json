@@ -1,0 +1,7 @@
+[
+  {
+    "id": "deploy",
+    "execute-command": "/home/whizcamp/simranproject/deploy.sh",
+    "command-working-directory": "/home/whizcamp/simranproject"
+  }
+]
